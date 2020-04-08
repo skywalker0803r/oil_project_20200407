@@ -74,21 +74,22 @@ class custom_model(object):
 
 class transform23to54(object):
     def __init__(self):
-        self.x_cols = y23 
-        self.y_cols = y54 
-        self.W = tr_matrix
+        self.x_cols = y23.columns.tolist()
+        self.y_cols = y54.columns.tolist()
+        self.W = W
+    
     def __call__(self,x):
-        res = x.values@self.W.values
+        res = x.values@self.W
         return pd.DataFrame(res,columns=self.y_cols)
 
 class Dual_net(nn.Module):
     def __init__(self):
         super(Dual_net,self).__init__()
-        a = 3
-        b = 54
+        a = 3 # 4 to 3
+        b = 54 # 54 to 54
         c = a+b
         self.C_net = self._build_C_net(4,a)
-        self.N_net = self._build_N_net(b,b) 
+        self.N_net = self._build_N_net(54,b) 
         self.F_net = self._build_F_net(c,c)
         # build O_net
         self.O_net1 = self._build_O_net(c,3)
@@ -167,7 +168,7 @@ class Dual_net(nn.Module):
         f = self.F_net(f)
         output = torch.tensor([]).cuda()
         for i in self.O_nets:
-            v = F.softmax(i(f),dim=1)
+            v = F.sigmoid(i(f)) # range[0,1]
             output = torch.cat((output,v),dim=1)
         return output
     
@@ -178,28 +179,32 @@ class Dual_net(nn.Module):
     @staticmethod
     def _build_C_net(input_shape,output_shape):
         net = torch.nn.Sequential(
-            Linear(input_shape,128),ReLU(),
+            Linear(input_shape,128),
+            ReLU(),
             Linear(128,output_shape))
         return net.cuda()
     
     @staticmethod
     def _build_N_net(input_shape,output_shape):
         net = torch.nn.Sequential(
-            Linear(input_shape,128),ReLU(),
+            Linear(input_shape,128),
+            ReLU(),
             Linear(128,output_shape))
         return net.cuda()
     
     @staticmethod
     def _build_F_net(input_shape,output_shape):
         net = torch.nn.Sequential(
-            Linear(input_shape,128),ReLU(),
+            Linear(input_shape,128),
+            ReLU(),
             Linear(128,output_shape))
         return net.cuda()
     
     @staticmethod
     def _build_O_net(input_shape,output_shape):
         net = torch.nn.Sequential(
-            Linear(input_shape,128),ReLU(),
+            Linear(input_shape,128),
+            ReLU(),
             Linear(128,output_shape))
         return net.cuda()
     
@@ -212,9 +217,10 @@ class Dual_net(nn.Module):
 
 
 class ANN_wrapper(object):
-    def __init__(self,x_col,y_col,scaler,net):
+    def __init__(self,x_col,y_col,n_col,scaler,net):
         self.x_col = x_col
         self.y_col = y_col
+        self.n_col = n_col
         self.scaler = scaler
         self.net = net
     
@@ -223,4 +229,42 @@ class ANN_wrapper(object):
         x = torch.tensor(x,dtype=torch.float).cuda()
         y = self.net(x).detach().cpu().numpy()
         y = pd.DataFrame(y,columns=self.y_col)
+        y = self.normalize(y)
         return y
+    
+    def normalize(self,y):
+        for i in self.n_col:
+            le = 'Individual Component to Light End Split Factor_'+i
+            hc = 'Individual Component to Heart Cut Split Factor_'+i
+            he = 'Individual Component to Heavy End Split Factor_'+i
+            col = [le,hc,he]
+            y[col] = y[col].values / y[col].sum(axis=1).values.reshape(-1,1)
+        return y
+
+class transformer2(object):
+    def __init__(self):
+        # output columns
+        self.le = get_col(df,'Light End Product Properties')[3:-1]
+        self.hc = get_col(df,'Heart Cut Product Properties')[4:-1]
+        self.he = get_col(df,'Heavy End Product Properties')[3:-1]
+        
+        # split factor columns
+        self.le_sp = get_col(df,'Light End Split Factor')
+        self.hc_sp = get_col(df,'Heart Cut Split Factor')
+        self.he_sp = get_col(df,'Heavy End Split Factor')
+    
+    @staticmethod
+    def _calculate_output(X,S,col_name):
+        X, S = X.values, S.values
+        F = np.diag(X@(S.T)).reshape(-1,1)
+        Y = 100*(X*S)/(F)
+        return pd.DataFrame(Y,columns=col_name)
+    
+    def __call__(self,xna,sp162):
+        sle = sp162[self.le_sp] #SLE
+        shc = sp162[self.hc_sp] #SHC
+        she = sp162[self.he_sp] #SHE
+        x_le = self._calculate_output(xna,sle,self.le) #XLE
+        x_hc = self._calculate_output(xna,shc,self.hc) #XHC
+        x_he = self._calculate_output(xna,she,self.he) #XHE
+        return pd.concat([x_le,x_hc,x_he],axis=1)
