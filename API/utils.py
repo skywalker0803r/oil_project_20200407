@@ -268,3 +268,41 @@ class transformer2(object):
         x_hc = self._calculate_output(xna,shc,self.hc) #XHC
         x_he = self._calculate_output(xna,she,self.he) #XHE
         return pd.concat([x_le,x_hc,x_he],axis=1)
+
+class split_factor_transformer(object):
+    def __init__(self):
+        self.Xna_col = Xna_col
+        self.Fna_col = Fna_col
+        #=====================
+        self.Sle_col = Sle_col
+        self.Shc_col = Shc_col
+        self.She_col = She_col
+        #=====================
+        self.Xle_col = Xle_col
+        self.Xhc_col = Xhc_col
+        self.Xhe_col = Xhe_col
+        #=====================
+        self.Fle_col = Fle_col
+        self.Fhc_col = Fhc_col
+        self.Fhe_col = Fhe_col
+    
+    def __call__(self,df):
+        sle = self.calculate_sp(df,self.Xle_col,self.Fle_col,self.Sle_col)
+        shc = self.calculate_sp(df,self.Xhc_col,self.Fhc_col,self.Shc_col)
+        she = self.calculate_sp(df,self.Xhe_col,self.Fhe_col,self.She_col)
+        #=================
+        sle = sle.fillna(1)
+        sle.iloc[:,-1] = 0
+        #=================
+        shc = shc.fillna(0)
+        #=================
+        she = she.fillna(0)
+        she.iloc[:,-1] = 1
+        return sle,shc,she
+    
+    def calculate_sp(self,df,x_col,f_col,s_col):
+        Xna = df[self.Xna_col].values
+        Fna = df[self.Fna_col].values.reshape(-1,1)
+        Xw = df[x_col].values
+        Fw = df[f_col].values.reshape(-1,1)
+        return pd.DataFrame((Xw*Fw)/(Xna*Fna),columns=s_col)
