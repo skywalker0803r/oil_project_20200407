@@ -52,7 +52,7 @@ class custom_model(object):
     X = X[self.x_cols]
   
   def predict(self,data):
-    X = data.copy()
+    X = data.copy()    
     results = pd.DataFrame(index=[*range(len(X))],columns=self.y_cols)
     for y_name in self.y_cols:
       y_pred = self.model_23[y_name].predict(X)
@@ -63,6 +63,7 @@ class custom_model(object):
     X = X[self.x_cols]
     
     # normalize depand on N+A and P
+    X['P'] = 100 - X['N+A']
     results[self.N_col] = self._normalize(results[self.N_col])*X['N+A'].values.reshape(-1,1)
     results[self.P_col] = self._normalize(results[self.P_col])*X['P'].values.reshape(-1,1)
 
@@ -85,79 +86,23 @@ class transform23to54(object):
 class Dual_net(nn.Module):
     def __init__(self):
         super(Dual_net,self).__init__()
-        a = 3 # 4 to 3
-        b = 54 # 54 to 54
-        c = a+b
-        self.C_net = self._build_C_net(4,a)
-        self.N_net = self._build_N_net(54,b) 
-        self.F_net = self._build_F_net(c,c)
+        C_in = 4
+        C_out = 3
+        N_in = 54
+        N_out = 54
+        F_in = C_out+N_out
+        F_out = C_out+N_out
+        O_out = 3
+        
+        # build C,N,F
+        self.C_net = self._build_C_net(C_in,C_out)
+        self.N_net = self._build_N_net(N_in,N_out) 
+        self.F_net = self._build_F_net(F_in,F_out)
+        
         # build O_net
-        self.O_net1 = self._build_O_net(c,3)
-        self.O_net2 = self._build_O_net(c,3)
-        self.O_net3 = self._build_O_net(c,3)
-        self.O_net4 = self._build_O_net(c,3)
-        self.O_net5 = self._build_O_net(c,3)
-        self.O_net6 = self._build_O_net(c,3)
-        self.O_net7 = self._build_O_net(c,3)
-        self.O_net8 = self._build_O_net(c,3)
-        self.O_net9 = self._build_O_net(c,3)
-        self.O_net10 = self._build_O_net(c,3)
-        self.O_net11 = self._build_O_net(c,3)
-        self.O_net12 = self._build_O_net(c,3)
-        self.O_net13 = self._build_O_net(c,3)
-        self.O_net14 = self._build_O_net(c,3)
-        self.O_net15 = self._build_O_net(c,3)
-        self.O_net16 = self._build_O_net(c,3)
-        self.O_net17 = self._build_O_net(c,3)
-        self.O_net18 = self._build_O_net(c,3)
-        self.O_net19 = self._build_O_net(c,3)
-        self.O_net20 = self._build_O_net(c,3)
-        self.O_net21 = self._build_O_net(c,3)
-        self.O_net22 = self._build_O_net(c,3)
-        self.O_net23 = self._build_O_net(c,3)
-        self.O_net24 = self._build_O_net(c,3)
-        self.O_net25 = self._build_O_net(c,3)
-        self.O_net26 = self._build_O_net(c,3)
-        self.O_net27 = self._build_O_net(c,3)
-        self.O_net28 = self._build_O_net(c,3)
-        self.O_net29 = self._build_O_net(c,3)
-        self.O_net30 = self._build_O_net(c,3)
-        self.O_net31 = self._build_O_net(c,3)
-        self.O_net32 = self._build_O_net(c,3)
-        self.O_net33 = self._build_O_net(c,3)
-        self.O_net34 = self._build_O_net(c,3)
-        self.O_net35 = self._build_O_net(c,3)
-        self.O_net36 = self._build_O_net(c,3)
-        self.O_net37 = self._build_O_net(c,3)
-        self.O_net38 = self._build_O_net(c,3)
-        self.O_net39 = self._build_O_net(c,3)
-        self.O_net40 = self._build_O_net(c,3)
-        self.O_net41 = self._build_O_net(c,3)
-        self.O_net42 = self._build_O_net(c,3)
-        self.O_net43 = self._build_O_net(c,3)
-        self.O_net44 = self._build_O_net(c,3)
-        self.O_net45 = self._build_O_net(c,3)
-        self.O_net46 = self._build_O_net(c,3)
-        self.O_net47 = self._build_O_net(c,3)
-        self.O_net48 = self._build_O_net(c,3)
-        self.O_net49 = self._build_O_net(c,3)
-        self.O_net50 = self._build_O_net(c,3)
-        self.O_net51 = self._build_O_net(c,3)
-        self.O_net52 = self._build_O_net(c,3)
-        self.O_net53 = self._build_O_net(c,3)
-        self.O_net54 = self._build_O_net(c,3)
-        # O_nets list
-        self.O_nets = [self.O_net1,self.O_net2,self.O_net3,self.O_net4,self.O_net5,
-                       self.O_net6,self.O_net7,self.O_net8,self.O_net9,self.O_net10,
-                       self.O_net11,self.O_net12,self.O_net13,self.O_net14,self.O_net15,
-                       self.O_net16,self.O_net17,self.O_net18,self.O_net19,self.O_net20,
-                       self.O_net21,self.O_net22,self.O_net23,self.O_net24,self.O_net25,
-                       self.O_net26,self.O_net27,self.O_net28,self.O_net29,self.O_net30,
-                       self.O_net31,self.O_net32,self.O_net33,self.O_net34,self.O_net35,
-                       self.O_net36,self.O_net37,self.O_net38,self.O_net39,self.O_net40,
-                       self.O_net41,self.O_net42,self.O_net43,self.O_net44,self.O_net45,
-                       self.O_net46,self.O_net47,self.O_net48,self.O_net49,self.O_net50,
-                       self.O_net51,self.O_net52,self.O_net53,self.O_net54]
+        for i in range(54):
+            setattr(self,'O_net{}'.format(i+1),self._build_O_net(F_out,O_out))
+        
         # initialize weight
         self.apply(self._init_weights)
             
@@ -167,8 +112,9 @@ class Dual_net(nn.Module):
         f = torch.cat((c,n),dim=1)
         f = self.F_net(f)
         output = torch.tensor([]).cuda()
-        for i in self.O_nets:
-            v = F.sigmoid(i(f)) # range[0,1]
+        for i in range(54):
+            O_net = getattr(self,'O_net{}'.format(i+1))
+            v = F.sigmoid(O_net(f))
             output = torch.cat((output,v),dim=1)
         return output
     
@@ -228,15 +174,15 @@ class ANN_wrapper(object):
         x = self.scaler.transform(x)
         x = torch.tensor(x,dtype=torch.float).cuda()
         y = self.net(x).detach().cpu().numpy()
-        y = pd.DataFrame(y,columns=self.y_col)
+        y = pd.DataFrame(y,columns=self.y_col).apply(lambda x:round(x,12))
         y = self.normalize(y)
         return y
     
     def normalize(self,y):
         for i in self.n_col:
-            le = 'Individual Component to Light End Split Factor_'+i
-            hc = 'Individual Component to Heart Cut Split Factor_'+i
-            he = 'Individual Component to Heavy End Split Factor_'+i
+            le = 'Individual Component to Light End Split Factor_{}_Ratio'.format(i)
+            hc = 'Individual Component to Heart Cut Split Factor_{}_Ratio'.format(i)
+            he = 'Individual Component to Heavy End Split Factor_{}_Ratio'.format(i)
             col = [le,hc,he]
             y[col] = y[col].values / y[col].sum(axis=1).values.reshape(-1,1)
         return y
